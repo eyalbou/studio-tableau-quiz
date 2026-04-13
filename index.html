@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Tableau Pop Quiz</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/dm-sans@5.0.18/index.min.css">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f172a;
+    --bg-mid: #1e293b;
+    --card: rgba(255,255,255,0.06);
+    --card-border: rgba(255,255,255,0.08);
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-dim: #2563eb;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --surface: rgba(255,255,255,0.04);
+  }
+  html, body {
+    height: 100%; overflow: hidden;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg-mid) 50%, var(--bg) 100%);
+    color: var(--text);
+  }
+  .slide-container { height: 100vh; width: 100vw; position: relative; }
+  .slide {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: safe center;
+    padding: 80px 64px 64px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 350ms cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+  }
+  .slide.active { opacity: 1; pointer-events: all; }
+  .slide-number {
+    position: absolute; top: 20px; left: 32px;
+    font-size: 12px; color: var(--text-muted); letter-spacing: 0.05em;
+  }
+  .nav-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 16px 32px; background: rgba(15,23,42,0.85);
+    backdrop-filter: blur(16px); border-bottom: 1px solid var(--card-border);
+  }
+  .nav-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--card-border);
+    cursor: pointer; transition: all 200ms;
+  }
+  .nav-dot.active { background: var(--primary); border-color: var(--primary); transform: scale(1.3); }
+  .nav-dot:hover:not(.active) { background: rgba(255,255,255,0.15); }
+  .nav-label {
+    position: fixed; top: 56px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; color: var(--text-muted); letter-spacing: 0.04em;
+    text-transform: uppercase; opacity: 0.7;
+  }
+
+  h1 { font-size: 54px; letter-spacing: -0.02em; line-height: 1.15; font-weight: 700; text-align: center; }
+  h2 { font-size: 40px; letter-spacing: -0.02em; line-height: 1.15; font-weight: 600; text-align: center; }
+  h3 { font-size: 24px; letter-spacing: -0.01em; line-height: 1.3; font-weight: 500; color: var(--text-muted); text-align: center; }
+  .subtitle { font-size: 22px; color: var(--text-muted); margin-top: 12px; text-align: center; line-height: 1.5; }
+
+  .card {
+    background: var(--card); backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 32px; max-width: 800px; width: 100%;
+  }
+  .question-card {
+    background: var(--card); backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border); border-radius: 12px;
+    padding: 48px; text-align: center; max-width: 920px;
+  }
+  .question-text { font-size: 34px; letter-spacing: -0.02em; line-height: 1.3; font-weight: 600; }
+
+  .answer-area {
+    margin-top: 32px; opacity: 0; transform: translateY(12px);
+    transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+  .answer-area.revealed { opacity: 1; transform: translateY(0); pointer-events: all; }
+
+  .big-number {
+    font-size: 88px; font-weight: 700; letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .big-number.green {
+    background: linear-gradient(135deg, var(--success) 0%, #34d399 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .big-number.red {
+    background: linear-gradient(135deg, var(--error) 0%, #f87171 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .big-number.warning {
+    background: linear-gradient(135deg, var(--warning) 0%, #fbbf24 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .answer-label { font-size: 20px; color: var(--text-muted); margin-top: 8px; }
+  .answer-name { font-size: 30px; font-weight: 600; margin-top: 4px; }
+
+  .reveal-hint {
+    position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+    font-size: 15px; color: var(--text-muted); opacity: 0.5;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .reveal-hint .key {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 2px 8px; border-radius: 4px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+    font-size: 11px; font-family: monospace;
+  }
+
+  .bar-chart-container { width: 100%; max-width: 700px; margin-top: 16px; }
+  .top5-bar { width: 100%; max-width: 820px; }
+  .top5-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .top5-name { width: 270px; font-size: 16px; color: var(--text); text-align: right; flex-shrink: 0; line-height: 1.3; }
+  .top5-track { flex: 1; height: 36px; background: var(--surface); border-radius: 6px; overflow: hidden; border: 1px solid var(--card-border); position: relative; }
+  .top5-fill { height: 100%; border-radius: 6px; transition: width 800ms cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: flex-end; padding-right: 12px; min-width: 48px; }
+  .top5-val { font-size: 17px; font-weight: 700; color: rgba(0,0,0,0.7); white-space: nowrap; }
+  canvas { max-height: 260px; }
+
+  .stat-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    max-width: 600px; width: 100%; margin-top: 24px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--card-border);
+    border-radius: 8px; padding: 20px; text-align: center;
+  }
+  .stat-value { font-size: 28px; font-weight: 700; }
+  .stat-label { font-size: 16px; color: var(--text-muted); margin-top: 4px; }
+
+  .leaderboard { width: 100%; max-width: 700px; margin-top: 16px; }
+  .lb-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px; border-bottom: 1px solid var(--card-border);
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank { font-size: 24px; font-weight: 700; color: var(--primary); width: 36px; text-align: center; }
+  .lb-rank.gold { color: #fbbf24; }
+  .lb-rank.silver { color: #94a3b8; }
+  .lb-rank.bronze { color: #cd7f32; }
+  .lb-name { flex: 1; font-size: 20px; font-weight: 500; }
+  .lb-value { font-size: 20px; font-weight: 600; color: var(--primary); }
+  .lb-sub { font-size: 14px; color: var(--text-muted); }
+
+  .gali-profile { display: flex; gap: 28px; width: 100%; max-width: 860px; margin-top: 12px; align-items: flex-start; }
+  .gali-hero { display: flex; flex-direction: column; align-items: center; min-width: 220px; gap: 8px; }
+  .gali-avatar {
+    width: 90px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%); font-size: 40px; font-weight: 800; color: white;
+  }
+  .gali-hero-num { font-size: 48px; font-weight: 800; color: var(--primary); line-height: 1; }
+  .gali-hero-label { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .gali-hero-sub { font-size: 15px; color: var(--text-muted); margin-top: 4px; }
+  .gali-badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 12px;
+    font-size: 13px; font-weight: 600; background: rgba(59,130,246,0.12); color: var(--primary);
+  }
+  .gali-details { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .gali-stat-row { display: flex; gap: 10px; }
+  .gali-stat {
+    flex: 1; background: var(--surface); border: 1px solid var(--card-border);
+    border-radius: 8px; padding: 10px 14px; text-align: center;
+  }
+  .gali-val { font-size: 24px; font-weight: 700; color: var(--primary); }
+  .gali-label { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .gali-obsession {
+    background: var(--surface); border: 1px solid var(--card-border); border-radius: 8px; padding: 12px 14px;
+  }
+  .gali-obsession-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .gali-obsession-title { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
+  .gali-obsession-pct { font-size: 20px; font-weight: 800; color: var(--warning); }
+  .gali-obsession-bar { height: 12px; background: rgba(255,255,255,0.06); border-radius: 6px; overflow: hidden; }
+  .gali-obsession-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--warning), #f97316); transition: width 800ms cubic-bezier(0.4, 0, 0.2, 1); }
+  .gali-obsession-name { font-size: 13px; color: var(--text); margin-top: 6px; font-weight: 500; }
+  .gali-funfacts { display: flex; gap: 10px; }
+  .gali-fact {
+    flex: 1; background: var(--surface); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 12px;
+  }
+  .gali-fact-icon { font-size: 20px; margin-bottom: 4px; }
+  .gali-fact-text { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+  .gali-fact-text strong { color: var(--text); }
+  .gali-week {
+    display: flex; gap: 4px; align-items: flex-end; height: 40px;
+  }
+  .gali-week-day {
+    display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1;
+  }
+  .gali-week-bar { width: 100%; min-width: 16px; border-radius: 3px 3px 0 0; background: var(--primary); transition: height 600ms ease; }
+  .gali-week-label { font-size: 9px; color: var(--text-muted); }
+
+  .gali-top {
+    width: 100%; max-width: 600px; margin-top: 16px;
+    background: var(--surface); border: 1px solid var(--card-border); border-radius: 8px;
+    padding: 16px;
+  }
+  .gali-top-title { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+  .gali-top-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+  .gali-top-name { color: var(--text); }
+  .gali-top-count { color: var(--primary); font-weight: 600; }
+
+  .title-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.9; }
+
+  .priority-bar { display: flex; height: 40px; border-radius: 8px; overflow: hidden; max-width: 700px; width: 100%; margin-top: 16px; }
+  .priority-seg { display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .priority-seg.p1 { background: var(--error); }
+  .priority-seg.p2 { background: var(--warning); color: #111827; }
+  .priority-seg.p3 { background: #fde68a; color: #111827; }
+  .priority-seg.dep { background: #475569; }
+
+  /* Kahoot-style podium */
+  .podium-scene { display: flex; flex-direction: column; align-items: center; width: 100%; margin-top: 8px; }
+  .podium-stage { display: flex; align-items: flex-end; justify-content: center; gap: 8px; height: 260px; width: 100%; max-width: 720px; }
+  .podium-col { display: flex; flex-direction: column; align-items: center; width: 180px; }
+  .podium-info { text-align: center; margin-bottom: 8px; opacity: 0; transform: translateY(10px); }
+  .podium-info.animate { animation: podiumFadeIn 0.5s ease forwards; }
+  .podium-person { font-size: 18px; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .podium-fav-label { font-size: 13px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 3px; }
+  .podium-bar {
+    width: 100%; border-radius: 10px 10px 0 0; display: flex; align-items: flex-end; justify-content: center;
+    height: 0; overflow: hidden; position: relative;
+  }
+  .podium-bar.animate { animation: podiumGrow var(--grow-duration, 0.8s) cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+  .podium-bar .podium-views {
+    font-size: 32px; font-weight: 800; color: rgba(0,0,0,0.7); padding-bottom: 12px;
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .podium-bar.animate .podium-views { animation: podiumFadeIn 0.3s ease 0.6s forwards; }
+  .podium-bar .podium-rank {
+    position: absolute; top: 10px; font-size: 32px; font-weight: 900; color: rgba(0,0,0,0.2);
+  }
+  .podium-bar-gold { background: linear-gradient(180deg, #FFD700 0%, #F0C030 100%); --target-h: 200px; }
+  .podium-bar-silver { background: linear-gradient(180deg, #E0E0E0 0%, #B0B0B0 100%); --target-h: 140px; }
+  .podium-bar-bronze { background: linear-gradient(180deg, #E8A060 0%, #CD7F32 100%); --target-h: 100px; }
+  @keyframes podiumGrow { 0% { height: 0; } 100% { height: var(--target-h); } }
+  @keyframes podiumFadeIn { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+  @keyframes podiumBounce { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  @keyframes confettiBurst {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-60px) scale(0.5); }
+  }
+  .podium-confetti {
+    position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+    font-size: 24px; opacity: 0;
+  }
+  .podium-bar.animate .podium-confetti { animation: confettiBurst 1s ease-out 0.9s forwards; }
+  .runners-up {
+    display: flex; gap: 24px; margin-top: 16px; justify-content: center;
+  }
+  .runner-card {
+    display: flex; align-items: center; gap: 12px; padding: 8px 16px;
+    background: var(--surface); border: 1px solid var(--card-border); border-radius: 8px;
+    opacity: 0;
+  }
+  .runner-card.animate { animation: podiumFadeIn 0.5s ease forwards; }
+  .runner-rank { font-size: 20px; font-weight: 800; color: var(--text-muted); min-width: 28px; }
+  .runner-info { display: flex; flex-direction: column; gap: 1px; }
+  .runner-name { font-size: 16px; font-weight: 600; }
+  .runner-fav { font-size: 13px; color: var(--text-muted); }
+  .runner-views { font-size: 20px; font-weight: 700; color: var(--primary); margin-left: auto; }
+  .runner-views-label { font-size: 12px; color: var(--text-muted); }
+
+  .mia-card {
+    flex: 1; min-width: 120px; background: rgba(255,255,255,0.03);
+    border: 1px solid var(--card-border); border-radius: 8px; padding: 12px;
+  }
+  .mia-name { font-size: 16px; font-weight: 600; color: var(--text); }
+  .mia-detail { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .mia-fav { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+
+  .migration-steps { display: flex; flex-direction: column; gap: 6px; max-width: 740px; width: 100%; margin-top: 16px; }
+  .phase-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); padding: 8px 0 2px; display: flex; align-items: center; gap: 6px;
+  }
+  .phase-label:first-child { padding-top: 0; }
+  .step-item {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 10px 16px; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--card-border);
+    transition: background 200ms;
+  }
+  .step-item:hover { background: rgba(255,255,255,0.06); }
+  .step-num {
+    width: 28px; height: 28px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: var(--primary); color: white;
+    font-size: 13px; font-weight: 700; margin-top: 2px;
+  }
+  .step-content { flex: 1; }
+  .step-title { font-size: 17px; font-weight: 600; color: var(--text); }
+  .step-desc { font-size: 15px; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+  .pat-hover-trigger { display: inline-block; }
+  .pat-hover-img { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 8px; z-index: 100; padding: 6px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  .pat-hover-img img { width: 480px; border-radius: 4px; display: block; }
+  .pat-hover-trigger:hover .pat-hover-img { display: block; }
+  .step-desc code {
+    background: rgba(59,130,246,0.15); padding: 1px 6px; border-radius: 3px;
+    font-size: 12px; color: var(--primary);
+  }
+
+  .agenda-list { display: flex; flex-direction: column; gap: 0; position: relative; }
+  .agenda-list::before {
+    content: ''; position: absolute; left: 79px; top: 24px; bottom: 24px;
+    width: 2px; background: var(--card-border);
+  }
+  .agenda-item {
+    display: flex; align-items: flex-start; gap: 20px; padding: 16px 0;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .agenda-item:last-child { border-bottom: none; }
+  .agenda-time {
+    width: 56px; font-size: 24px; font-weight: 700; color: var(--text);
+    flex-shrink: 0; text-align: right; padding-top: 2px;
+  }
+  .agenda-dot {
+    width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+    margin-top: 6px; position: relative; z-index: 1;
+    box-shadow: 0 0 0 4px var(--bg);
+  }
+  .agenda-content { flex: 1; }
+  .agenda-title { font-size: 24px; font-weight: 600; color: var(--text); }
+  .agenda-desc { font-size: 17px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
+  .agenda-desc code {
+    background: rgba(59,130,246,0.15); padding: 1px 6px; border-radius: 3px;
+    font-size: 13px; color: var(--primary);
+  }
+  .lunch-item .agenda-title { color: var(--text-muted); }
+
+  .staleness-bar { width: 100%; max-width: 700px; }
+  .staleness-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .staleness-label { width: 110px; font-size: 16px; color: var(--text-muted); text-align: right; flex-shrink: 0; }
+  .staleness-track { flex: 1; height: 30px; background: var(--surface); border-radius: 6px; overflow: hidden; border: 1px solid var(--card-border); }
+  .staleness-fill { height: 100%; border-radius: 6px; transition: width 800ms cubic-bezier(0.4, 0, 0.2, 1); }
+  .staleness-pct { width: 48px; font-size: 22px; font-weight: 700; text-align: right; flex-shrink: 0; }
+  .staleness-count { width: 64px; font-size: 15px; color: var(--text-muted); flex-shrink: 0; }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in-up { animation: fadeInUp 500ms ease-out forwards; }
+</style>
+</head>
+<body>
+
+<nav class="nav-bar" id="navBar"></nav>
+<div class="nav-label" id="navLabel"></div>
+
+<div class="slide-container">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide" data-title="Intro">
+    <div class="title-icon"><i class="ph ph-chart-bar"></i></div>
+    <h1>Studio Tableau Pop Quiz</h1>
+    <p class="subtitle">How well do you know our dashboards?<br>Test your knowledge before we plan the Vizion migration.</p>
+    <div style="margin-top: 40px; display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: nowrap;">
+      <span class="key">&larr;</span> <span class="key">&rarr;</span>
+      <span style="font-size: 15px; color: var(--text-muted);">to navigate</span>
+      <span style="margin: 0 6px; color: var(--text-muted);">&middot;</span>
+      <span class="key">Space</span>
+      <span style="font-size: 15px; color: var(--text-muted);">to reveal answers</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Dashboard Empire -->
+  <div class="slide" data-title="Dashboard Empire">
+    <div class="slide-number">02 / 15</div>
+    <div class="question-card">
+      <div class="title-icon"><i class="ph ph-buildings"></i></div>
+      <div class="question-text">How many Studio workbooks<br>exist on Tableau?</div>
+      <div class="answer-area" id="answer-2">
+        <div class="big-number">78</div>
+        <div class="answer-label">workbooks under Site Builders/Studio</div>
+      </div>
+    </div>
+    <div class="reveal-hint" id="hint-2"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 3: Popular Kid -->
+  <div class="slide" data-title="Popular Kid">
+    <div class="slide-number">03 / 15</div>
+    <div class="question-card">
+      <div class="title-icon"><i class="ph ph-crown"></i></div>
+      <div class="question-text">Which dashboard has the most views<br>in the last 90 days?</div>
+      <div class="answer-area" id="answer-3">
+        <div class="big-number">159</div>
+        <div class="answer-label">views in 90 days</div>
+        <div class="answer-name">BI Events Monitoring Alerts</div>
+      </div>
+    </div>
+    <div class="reveal-hint" id="hint-3"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 4: BA Top 5 -->
+  <div class="slide" data-title="BA Top 5">
+    <div class="slide-number">04 / 15</div>
+    <div class="question-card">
+      <div class="question-text">What are the top 5 dashboards<br>opened by BAs in the last 90 days?</div>
+      <div class="answer-area" id="answer-4" style="width: 100%; display: flex; justify-content: center;">
+      <div class="top5-bar">
+        <div class="top5-row">
+          <span class="top5-name">BI Events Monitoring Alerts</span>
+          <div class="top5-track"><div class="top5-fill" style="width: 100%; background: linear-gradient(90deg, #3b82f6, #6366f1);"><span class="top5-val">136</span></div></div>
+        </div>
+        <div class="top5-row">
+          <span class="top5-name">Studio Monthly KPIs</span>
+          <div class="top5-track"><div class="top5-fill" style="width: 68.4%; background: linear-gradient(90deg, #6366f1, #8b5cf6);"><span class="top5-val">93</span></div></div>
+        </div>
+        <div class="top5-row">
+          <span class="top5-name">STUDIO LOADING</span>
+          <div class="top5-track"><div class="top5-fill" style="width: 40.4%; background: linear-gradient(90deg, #8b5cf6, #a78bfa);"><span class="top5-val">55</span></div></div>
+        </div>
+        <div class="top5-row">
+          <span class="top5-name">Perf AB test Report - Main</span>
+          <div class="top5-track"><div class="top5-fill" style="width: 33.8%; background: linear-gradient(90deg, #a78bfa, #c4b5fd);"><span class="top5-val">46</span></div></div>
+        </div>
+        <div class="top5-row">
+          <span class="top5-name">SR/duration Studio fedops kpis</span>
+          <div class="top5-track"><div class="top5-fill" style="width: 33.8%; background: linear-gradient(90deg, #c4b5fd, #ddd6fe);"><span class="top5-val">46</span></div></div>
+        </div>
+      </div>
+      </div>
+    </div>
+    <div class="reveal-hint" id="hint-4"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 5: Stakeholder Top 5 -->
+  <div class="slide" data-title="Stakeholder Top 5">
+    <div class="slide-number">05 / 15</div>
+    <div class="question-card">
+      <div class="question-text">What are the top 5 dashboards<br>opened by stakeholders?</div>
+      <div class="answer-area" id="answer-5" style="width: 100%; display: flex; justify-content: center;">
+      <div class="top5-bar">
+        <div class="top5-row">
+          <span class="top5-name">SR/duration Studio fedops kpis</span>
+          <div class="top5-track"><div class="top5-fill" style="width: 100%; background: linear-gradient(90deg, #10b981, #34d399);"><span class="top5-val">73</span></div></div>
+        </div>
+        <div class="top5-row">
+          <span class="top5-name">Perf AB test Report - Main</span>
+          <div class="top5-track"><div class="top5-fill" style="width: 75.3%; background: linear-gradient(90deg, #34d399, #6ee7b7);"><span class="top5-val">55</span></div></div>
+        </div>
+        <div class="top5-row">
+          <span class="top5-name">Studio - FPS</span>
+          <div class="top5-track"><div class="top5-fill" style="width: 50.7%; background: linear-gradient(90deg, #6ee7b7, #a7f3d0);"><span class="top5-val">37</span></div></div>
+        </div>
+        <div class="top5-row">
+          <span class="top5-name">Figma 2 Studio</span>
+          <div class="top5-track"><div class="top5-fill" style="width: 41.1%; background: linear-gradient(90deg, #a7f3d0, #d1fae5);"><span class="top5-val">30</span></div></div>
+        </div>
+        <div class="top5-row">
+          <span class="top5-name">STUDIO LOADING</span>
+          <div class="top5-track"><div class="top5-fill" style="width: 38.4%; background: linear-gradient(90deg, #d1fae5, #ecfdf5);"><span class="top5-val">28</span></div></div>
+        </div>
+      </div>
+      </div>
+    </div>
+    <div class="reveal-hint" id="hint-5"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 6: Ghost Town -->
+  <div class="slide" data-title="Ghost Town">
+    <div class="slide-number">06 / 15</div>
+    <div class="question-card">
+      <div class="title-icon"><i class="ph ph-ghost"></i></div>
+      <div class="question-text">What % of Studio dashboards<br>have NOT been opened?</div>
+      <div class="answer-area" id="answer-6" style="width: 100%;">
+        <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 12px;">
+          <div class="staleness-bar">
+            <div class="staleness-row">
+              <span class="staleness-label">Last 30 days</span>
+              <div class="staleness-track"><div class="staleness-fill" style="width: 66.7%; background: var(--error);"></div></div>
+              <span class="staleness-pct" style="color: var(--error);">67%</span>
+              <span class="staleness-count">52 / 78</span>
+            </div>
+            <div class="staleness-row">
+              <span class="staleness-label">Last 90 days</span>
+              <div class="staleness-track"><div class="staleness-fill" style="width: 56.4%; background: #f97316;"></div></div>
+              <span class="staleness-pct" style="color: #f97316;">56%</span>
+              <span class="staleness-count">44 / 78</span>
+            </div>
+            <div class="staleness-row">
+              <span class="staleness-label">Last 180 days</span>
+              <div class="staleness-track"><div class="staleness-fill" style="width: 32.1%; background: var(--warning);"></div></div>
+              <span class="staleness-pct" style="color: var(--warning);">32%</span>
+              <span class="staleness-count">25 / 78</span>
+            </div>
+            <div class="staleness-row">
+              <span class="staleness-label">Last 365 days</span>
+              <div class="staleness-track"><div class="staleness-fill" style="width: 10.3%; background: var(--success);"></div></div>
+              <span class="staleness-pct" style="color: var(--success);">10%</span>
+              <span class="staleness-count">8 / 78</span>
+            </div>
+          </div>
+        </div>
+        <p style="margin-top: 16px; font-size: 14px; color: var(--text-muted); text-align: center;">
+          Over half our dashboards haven't been touched in 3 months.
+          Only 8 are truly abandoned (1yr+).
+        </p>
+      </div>
+    </div>
+    <div class="reveal-hint" id="hint-6"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 7: The Explorer -->
+  <div class="slide" data-title="The Explorer">
+    <div class="slide-number">07 / 15</div>
+    <div class="question-card">
+      <div class="title-icon"><i class="ph ph-compass"></i></div>
+      <div class="question-text">Who opened the most DIFFERENT<br>Studio dashboards in the last 90 days?</div>
+      <div class="answer-area" id="answer-7">
+        <div class="leaderboard" style="max-width: 600px;">
+          <div class="lb-row"><span class="lb-rank gold">1</span><span class="lb-name">Veronika Lytvyn</span><span class="lb-value">17 <span class="lb-sub">workbooks</span></span></div>
+          <div class="lb-row"><span class="lb-rank silver">2</span><span class="lb-name">Gali Peles</span><span class="lb-value">15 <span class="lb-sub">workbooks</span></span></div>
+          <div class="lb-row"><span class="lb-rank bronze">3</span><span class="lb-name">Radion Morozov</span><span class="lb-value">13 <span class="lb-sub">workbooks</span></span></div>
+          <div class="lb-row"><span class="lb-rank">4</span><span class="lb-name">Gali Sara Seinfeld</span><span class="lb-value">12 <span class="lb-sub">workbooks</span></span></div>
+          <div class="lb-row"><span class="lb-rank">5</span><span class="lb-name">Eyal Bourstein</span><span class="lb-value">16 <span class="lb-sub">workbooks</span></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="reveal-hint" id="hint-7"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 8: Dashboard Hoarder -->
+  <div class="slide" data-title="Dashboard Hoarder">
+    <div class="slide-number">08 / 15</div>
+    <div class="question-card">
+      <div class="title-icon"><i class="ph ph-package"></i></div>
+      <div class="question-text">Who owns the most<br>Studio dashboards?</div>
+      <div class="answer-area" id="answer-8">
+        <div class="leaderboard">
+          <div class="lb-row"><span class="lb-rank gold">1</span><span class="lb-name">veronikal</span><span class="lb-value">24</span></div>
+          <div class="lb-row"><span class="lb-rank silver">2</span><span class="lb-name">dansha</span><span class="lb-value">15</span></div>
+          <div class="lb-row"><span class="lb-rank bronze">3</span><span class="lb-name">eyalbou</span><span class="lb-value">12</span></div>
+          <div class="lb-row"><span class="lb-rank">4</span><span class="lb-name">shaharle</span><span class="lb-value">6</span></div>
+          <div class="lb-row"><span class="lb-rank">5</span><span class="lb-name">coralf</span><span class="lb-value">6</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="reveal-hint" id="hint-8"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 9: The Gali File -->
+  <div class="slide" data-title="The Gali File">
+    <div class="slide-number">09 / 15</div>
+    <h2 style="margin-bottom: 2px;"><i class="ph ph-star" style="margin-right: 8px; color: var(--warning);"></i>The Gali Peles File</h2>
+    <h3>Our #1 stakeholder power user gets her own slide</h3>
+    <div class="answer-area" id="answer-9" style="display: flex; flex-direction: column; align-items: center;">
+      <div class="gali-profile">
+        <!-- Left: Hero card -->
+        <div class="gali-hero">
+          <div class="gali-avatar">GP</div>
+          <div class="gali-hero-num">1,658</div>
+          <div class="gali-hero-label">total views</div>
+          <div class="gali-badge"><i class="ph ph-crown"></i> #1 non-BA last 90d</div>
+          <div class="gali-hero-sub">5.6% of all Studio views</div>
+        </div>
+        <!-- Right: Details -->
+        <div class="gali-details">
+          <div class="gali-stat-row">
+            <div class="gali-stat"><div class="gali-val">37</div><div class="gali-label">Workbooks</div></div>
+            <div class="gali-stat"><div class="gali-val">416</div><div class="gali-label">Active Days</div></div>
+            <div class="gali-stat"><div class="gali-val">95</div><div class="gali-label">Views (90d)</div></div>
+            <div class="gali-stat"><div class="gali-val" style="font-size: 16px;">Jun '22</div><div class="gali-label">First View</div></div>
+          </div>
+          <!-- Top 5 Dashboards -->
+          <div style="margin-top: 8px;">
+            <div style="font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;">
+              <i class="ph ph-heart" style="color: var(--error); margin-right: 4px;"></i>Top 5 Dashboards - Last 365 Days (of 593 views)
+            </div>
+            <div class="top5-bar" style="max-width: 100%;">
+              <div class="top5-row" style="margin-bottom: 8px;">
+                <span class="top5-name" style="width: 200px; font-size: 13px;">Perf AB test Report</span>
+                <div class="top5-track"><div class="top5-fill" style="width: 100%; background: linear-gradient(90deg, #f59e0b, #f97316);"><span class="top5-val" style="font-size: 14px;">409 (69%)</span></div></div>
+              </div>
+              <div class="top5-row" style="margin-bottom: 8px;">
+                <span class="top5-name" style="width: 200px; font-size: 13px;">SR/duration fedops kpis</span>
+                <div class="top5-track"><div class="top5-fill" style="width: 10.3%; background: linear-gradient(90deg, #f97316, #fb923c); min-width: 80px;"><span class="top5-val" style="font-size: 14px;">42 (7.1%)</span></div></div>
+              </div>
+              <div class="top5-row" style="margin-bottom: 8px;">
+                <span class="top5-name" style="width: 200px; font-size: 13px;">Browsers and crashes</span>
+                <div class="top5-track"><div class="top5-fill" style="width: 6.6%; background: linear-gradient(90deg, #fb923c, #fdba74); min-width: 80px;"><span class="top5-val" style="font-size: 14px;">27 (4.6%)</span></div></div>
+              </div>
+              <div class="top5-row" style="margin-bottom: 8px;">
+                <span class="top5-name" style="width: 200px; font-size: 13px;">Editor fedops AB Test</span>
+                <div class="top5-track"><div class="top5-fill" style="width: 4.4%; background: linear-gradient(90deg, #fdba74, #fed7aa); min-width: 80px;"><span class="top5-val" style="font-size: 14px;">18 (3%)</span></div></div>
+              </div>
+              <div class="top5-row" style="margin-bottom: 8px;">
+                <span class="top5-name" style="width: 200px; font-size: 13px;">Page Navigation</span>
+                <div class="top5-track"><div class="top5-fill" style="width: 4.2%; background: linear-gradient(90deg, #fed7aa, #ffedd5); min-width: 80px;"><span class="top5-val" style="font-size: 14px;">17 (2.9%)</span></div></div>
+              </div>
+            </div>
+          </div>
+          <!-- Fun fact callouts -->
+          <div class="gali-funfacts">
+            <div class="gali-fact">
+              <div class="gali-fact-icon">&#9728;&#65039;</div>
+              <div class="gali-fact-text"><strong>Sunday > Friday</strong><br>358 views on Sundays vs 29 on Fridays. 12x more!</div>
+            </div>
+            <div class="gali-fact">
+              <div class="gali-fact-icon">&#128293;</div>
+              <div class="gali-fact-text"><strong>Peak: Jan 2025</strong><br>114 views in a single month. Last seen: today.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="reveal-hint" id="hint-9"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 10: Old Faithful -->
+  <div class="slide" data-title="Old Faithful">
+    <div class="slide-number">10 / 15</div>
+    <div class="question-card">
+      <div class="title-icon"><i class="ph ph-clock-countdown"></i></div>
+      <div class="question-text">What's the oldest dashboard<br>still being actively viewed?</div>
+      <div class="answer-area" id="answer-10">
+        <div class="answer-name" style="font-size: 22px;">Studio - FPS</div>
+        <div style="margin-top: 12px; display: flex; gap: 24px; justify-content: center;">
+          <div class="gali-stat"><div class="gali-val" style="color: var(--success);">Jun 2023</div><div class="gali-label">Created</div></div>
+          <div class="gali-stat"><div class="gali-val" style="color: var(--primary);">19</div><div class="gali-label">Views Last 30d</div></div>
+          <div class="gali-stat"><div class="gali-val" style="color: var(--warning);">2+ yrs</div><div class="gali-label">Age</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="reveal-hint" id="hint-10"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 11: Dust Collector -->
+  <div class="slide" data-title="Dust Collector">
+    <div class="slide-number">11 / 15</div>
+    <div class="question-card">
+      <div class="title-icon"><i class="ph ph-hourglass"></i></div>
+      <div class="question-text">What dashboard hasn't been<br>viewed the longest?</div>
+      <div class="answer-area" id="answer-11">
+        <div class="answer-name" style="font-size: 22px;">Worst Latency - Loading</div>
+        <div style="margin-top: 12px;">
+          <div class="big-number warning" style="font-size: 48px;">Sep 2024</div>
+          <div class="answer-label">Last viewed over 18 months ago</div>
+        </div>
+      </div>
+    </div>
+    <div class="reveal-hint" id="hint-11"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 12: Big Picture -->
+  <div class="slide" data-title="Big Picture">
+    <div class="slide-number">12 / 15</div>
+    <h2>The Big Picture</h2>
+    <h3>Studio Tableau at a glance - and the road to Vizion</h3>
+    <div class="answer-area" id="answer-12" style="display: flex; flex-direction: column; align-items: center;">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value" style="color: var(--primary);">78</div>
+          <div class="stat-label">Total Workbooks</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color: var(--success);">1.1K</div>
+          <div class="stat-label">Views in 90 Days</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color: var(--error);">44</div>
+          <div class="stat-label">Zero Views (56%)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="color: var(--warning);">14</div>
+          <div class="stat-label">Avg Views / Workbook</div>
+        </div>
+      </div>
+      <div style="margin-top: 24px; max-width: 700px; width: 100%;">
+        <h3 style="margin-bottom: 8px; text-align: left;">Migration Priority Breakdown</h3>
+        <div class="priority-bar">
+          <div class="priority-seg p1" style="width: 23.1%;" title="Phase 1: 18">P1: 18</div>
+          <div class="priority-seg p2" style="width: 16.7%;" title="Phase 2: 13">P2: 13</div>
+          <div class="priority-seg p3" style="width: 25.6%;" title="Phase 3: 20">P3: 20</div>
+          <div class="priority-seg dep" style="width: 34.6%;" title="Deprecate: 27">Dep: 27</div>
+        </div>
+      </div>
+      <p style="margin-top: 24px; font-size: 18px; color: var(--text-muted); text-align: center; max-width: 600px; line-height: 1.6;">
+        <strong style="color: var(--text);">51 workbooks</strong> are migration candidates (Phase 1-3).<br>
+        <strong style="color: var(--error);">27</strong> can likely be deprecated.<br>
+        Let's prioritize together.
+      </p>
+    </div>
+    <div class="reveal-hint" id="hint-12"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 13: Top Stakeholder Viewers -->
+  <div class="slide" data-title="Stakeholder Viewers">
+    <div class="slide-number">13 / 15</div>
+    <h2 style="margin-bottom: 4px;"><i class="ph ph-users-three" style="margin-right: 8px;"></i>Who are our top stakeholder viewers?</h2>
+    <h3>Non-BA viewers, last 90 days - and their favorite dashboard</h3>
+    <div class="answer-area" id="answer-13" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+      <div class="podium-scene" id="podiumScene">
+        <div class="podium-stage">
+          <!-- 2nd place: Yehonatan Afraimov -->
+          <div class="podium-col">
+            <div class="podium-info" data-delay="600">
+              <div class="podium-person">Yehonatan A.</div>
+              <div class="podium-fav-label"><i class="ph ph-heart" style="color: var(--error);"></i> SR/duration fedops kpis</div>
+            </div>
+            <div class="podium-bar podium-bar-silver" data-delay="300" style="--target-h: 120px; --grow-duration: 0.7s;">
+              <span class="podium-rank">#2</span>
+              <span class="podium-views">51</span>
+            </div>
+          </div>
+          <!-- 1st place: Gali Peles -->
+          <div class="podium-col">
+            <div class="podium-info" data-delay="900">
+              <div class="podium-person" style="font-size: 17px;">Gali Peles</div>
+              <div class="podium-fav-label"><i class="ph ph-heart" style="color: var(--error);"></i> Perf AB test Report</div>
+            </div>
+            <div class="podium-bar podium-bar-gold" data-delay="600" style="--target-h: 200px; --grow-duration: 0.9s;">
+              <span class="podium-confetti">&#127881;</span>
+              <span class="podium-rank">#1</span>
+              <span class="podium-views">95</span>
+            </div>
+          </div>
+          <!-- 3rd place: Nykyta Bunchuk -->
+          <div class="podium-col">
+            <div class="podium-info" data-delay="400">
+              <div class="podium-person">Nykyta Bunchuk</div>
+              <div class="podium-fav-label"><i class="ph ph-heart" style="color: var(--error);"></i> SR/duration fedops kpis</div>
+            </div>
+            <div class="podium-bar podium-bar-bronze" data-delay="100" style="--target-h: 80px; --grow-duration: 0.6s;">
+              <span class="podium-rank">#3</span>
+              <span class="podium-views">35</span>
+            </div>
+          </div>
+        </div>
+        <!-- 4th & 5th runners-up -->
+        <div class="runners-up">
+          <div class="runner-card" data-delay="1100">
+            <span class="runner-rank">4th</span>
+            <div class="runner-info">
+              <span class="runner-name">Jonathan Tsodikovitch</span>
+              <span class="runner-fav"><i class="ph ph-heart" style="color: var(--error); margin-right: 3px;"></i>Figma 2 Studio</span>
+            </div>
+            <div style="text-align: right;"><span class="runner-views">29</span><br><span class="runner-views-label">views</span></div>
+          </div>
+          <div class="runner-card" data-delay="1200">
+            <span class="runner-rank">5th</span>
+            <div class="runner-info">
+              <span class="runner-name">Vasyl Zhovnirchuk</span>
+              <span class="runner-fav"><i class="ph ph-heart" style="color: var(--error); margin-right: 3px;"></i>Page Navigation</span>
+            </div>
+            <div style="text-align: right;"><span class="runner-views">27</span><br><span class="runner-views-label">views</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 16px; max-width: 740px; width: 100%; background: var(--surface); border: 1px solid var(--card-border); border-radius: 8px; padding: 16px;">
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em;">
+          <i class="ph ph-briefcase" style="margin-right: 4px;"></i> Management Viewers
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <div class="mia-card">
+            <div class="mia-name">Hanoch Sela</div>
+            <div class="mia-detail">121 all-time views &middot; 4 in last 90d &middot; last seen Mar 2026</div>
+            <div class="mia-fav"><i class="ph ph-heart"></i> studio site trends</div>
+          </div>
+          <div class="mia-card">
+            <div class="mia-name">Miri Lodman</div>
+            <div class="mia-detail">51 all-time views &middot; last seen May 2025</div>
+            <div class="mia-fav"><i class="ph ph-heart"></i> Links to performance reports</div>
+          </div>
+          <div class="mia-card">
+            <div class="mia-name">Gali Erez</div>
+            <div class="mia-detail">37 all-time views &middot; last seen Oct 2025</div>
+            <div class="mia-fav"><i class="ph ph-heart"></i> Daily Executive report</div>
+          </div>
+          <div class="mia-card">
+            <div class="mia-name">Nir Sadeh</div>
+            <div class="mia-detail">21 all-time views &middot; last seen Oct 2025</div>
+            <div class="mia-fav"><i class="ph ph-heart"></i> Studio Link report</div>
+          </div>
+          <div class="mia-card">
+            <div class="mia-name">Amit Kaspi</div>
+            <div class="mia-detail">Never viewed a Studio dashboard</div>
+            <div class="mia-fav" style="opacity: 0.3;"><i class="ph ph-heart-break"></i> N/A</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="reveal-hint" id="hint-13"><span class="key">Space</span> to reveal</div>
+  </div>
+
+  <!-- SLIDE 14: Agenda -->
+  <div class="slide" data-title="Agenda">
+    <div class="slide-number">14 / 15</div>
+    <div style="width: 100%; max-width: 780px;">
+      <h1 style="margin-bottom: 8px; text-align: left;"><i class="ph ph-calendar-blank" style="margin-right: 12px;"></i>Today's Agenda</h1>
+      <h3 style="text-align: left; margin-bottom: 32px;">Studio Tableau to Vizion Migration Day</h3>
+      <div class="agenda-list">
+        <div class="agenda-item active-item">
+          <div class="agenda-time">11:00</div>
+          <div class="agenda-dot" style="background: var(--primary);"></div>
+          <div class="agenda-content">
+            <div class="agenda-title">Coffee & Pop Quiz</div>
+            <div class="agenda-desc">Fun stats about our 78 Tableau dashboards</div>
+          </div>
+        </div>
+        <div class="agenda-item">
+          <div class="agenda-time">11:15</div>
+          <div class="agenda-dot" style="background: var(--warning);"></div>
+          <div class="agenda-content">
+            <div class="agenda-title">Prioritize & Assign</div>
+            <div class="agenda-desc">Review the migration spreadsheet, validate phases, assign SA&E owners</div>
+          </div>
+        </div>
+        <div class="agenda-item">
+          <div class="agenda-time">11:45</div>
+          <div class="agenda-dot" style="background: var(--success);"></div>
+          <div class="agenda-content">
+            <div class="agenda-title">Migration Skill Walkthrough</div>
+            <div class="agenda-desc">Learn the <code>create-from-tableau</code> skill - from Tableau link to published Vizion dashboard</div>
+          </div>
+        </div>
+        <div class="agenda-item lunch-item">
+          <div class="agenda-time">12:15</div>
+          <div class="agenda-dot" style="background: #94a3b8;"></div>
+          <div class="agenda-content">
+            <div class="agenda-title">Lunch Break</div>
+            <div class="agenda-desc"></div>
+          </div>
+        </div>
+        <div class="agenda-item">
+          <div class="agenda-time">13:00</div>
+          <div class="agenda-dot" style="background: #8b5cf6;"></div>
+          <div class="agenda-content">
+            <div class="agenda-title">Hands-on Migration</div>
+            <div class="agenda-desc">Migrate our first dashboards together - live, as a team</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: Migration Guide -->
+  <div class="slide" data-title="Migration Guide">
+    <div class="slide-number">15 / 15</div>
+    <h2 style="margin-bottom: 4px;"><i class="ph ph-rocket" style="margin-right: 8px;"></i>How to Migrate a Dashboard</h2>
+    <h3>The <code style="background: rgba(59,130,246,0.15); padding: 2px 8px; border-radius: 4px; color: var(--primary);">create-from-tableau</code> skill in Vizion &nbsp;<a href="https://wix.slack.com/archives/C0AE01JLL8M/p1775734474223009" target="_blank" style="font-size: 14px; color: var(--text-muted); text-decoration: none; vertical-align: middle;"><i class="ph ph-slack-logo" style="margin-right: 3px;"></i>Full guide</a></h3>
+    <div class="migration-steps">
+      <div class="phase-label"><i class="ph ph-wrench"></i> Setup</div>
+      <div class="step-item step-setup">
+        <div class="step-num" style="background: #6366f1;">0</div>
+        <div class="step-content">
+          <div class="step-title">Connect Tableau MCP</div>
+          <div class="step-desc">Add your personal token to agent config. Go to <a href="https://tableau.wixpress.com/" target="_blank" style="color: var(--primary); text-decoration: underline;">tableau.wixpress.com</a> &rarr; Account &rarr; Settings &rarr; <span class="pat-hover-trigger" style="color: var(--primary); cursor: help; border-bottom: 1px dashed var(--primary); position: relative;">Personal Access Tokens<span class="pat-hover-img"><img src="pat-screenshot.png" alt="PAT creation screen"></span></span> &rarr; Create Token</div>
+          <div class="step-desc" style="margin-top: 6px;">Then add to your <code>mcp.json</code>:</div>
+          <pre style="margin-top: 4px; background: #0d1117; border: 1px solid var(--card-border); border-radius: 6px; padding: 10px 14px; font-size: 13px; line-height: 1.5; color: #e6edf3; overflow-x: auto; white-space: pre;"><span style="color: #7ee787;">"Tableau-MCP"</span>: {
+  <span style="color: #7ee787;">"url"</span>: <span style="color: #a5d6ff;">"https://bo.wix.com/_serverless/tableau-mcp/mcp"</span>,
+  <span style="color: #7ee787;">"env"</span>: {
+    <span style="color: #7ee787;">"TABLEAU_SERVER_URL"</span>: <span style="color: #a5d6ff;">"https://tableau.wixpress.com"</span>,
+    <span style="color: #7ee787;">"TABLEAU_TOKEN_NAME"</span>: <span style="color: #a5d6ff;">"your-token-name"</span>,
+    <span style="color: #7ee787;">"TABLEAU_TOKEN_KEY"</span>: <span style="color: #a5d6ff;">"your-token-key"</span>
+  }
+}</pre>
+        </div>
+      </div>
+      <div class="step-item step-setup">
+        <div class="step-num" style="background: #6366f1;">1</div>
+        <div class="step-content">
+          <div class="step-title">Start the migration</div>
+          <div class="step-desc">Ask your coding agent to migrate a dashboard, or call <code>/create-from-tableau</code></div>
+        </div>
+      </div>
+      <div class="step-item step-setup">
+        <div class="step-num" style="background: #6366f1;">2</div>
+        <div class="step-content">
+          <div class="step-title">Link the dashboard</div>
+          <div class="step-desc">Paste the Tableau URL, or give the dashboard name - the agent will search for it</div>
+        </div>
+      </div>
+      <div class="step-item step-setup">
+        <div class="step-num" style="background: #6366f1;">3</div>
+        <div class="step-content">
+          <div class="step-title">Set target location in Vizion</div>
+          <div class="step-desc">State where the new dashboard should live in Vizion</div>
+        </div>
+      </div>
+      <div class="phase-label"><i class="ph ph-code"></i> Build</div>
+      <div class="step-item step-build">
+        <div class="step-num" style="background: var(--primary);">4</div>
+        <div class="step-content">
+          <div class="step-title">Review the plan</div>
+          <div class="step-desc">The agent creates a <strong>.md plan file</strong> with the migration blueprint - review and make changes before building</div>
+        </div>
+      </div>
+      <div class="step-item step-build">
+        <div class="step-num" style="background: var(--primary);">5</div>
+        <div class="step-content">
+          <div class="step-title">Build the new dashboard</div>
+          <div class="step-desc">When ready, tell the agent to build - it generates the Vizion dashboard</div>
+        </div>
+      </div>
+      <div class="phase-label"><i class="ph ph-check-circle"></i> Verify & Ship</div>
+      <div class="step-item step-verify">
+        <div class="step-num" style="background: var(--success);">6</div>
+        <div class="step-content">
+          <div class="step-title">Data & UI verification</div>
+          <div class="step-desc">Continue to the data and UI verification stages - compare with the original</div>
+        </div>
+      </div>
+      <div class="step-item step-verify">
+        <div class="step-num" style="background: var(--success);">7</div>
+        <div class="step-content">
+          <div class="step-title">Review locally</div>
+          <div class="step-desc">Review the new dashboard yourself in your local environment</div>
+        </div>
+      </div>
+      <div class="step-item step-verify">
+        <div class="step-num" style="background: var(--warning);">8</div>
+        <div class="step-content">
+          <div class="step-title">Publish</div>
+          <div class="step-desc">Ship it! Update the migration tracker sheet with the Vizion URL</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top: 16px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); border-radius: 8px; padding: 10px 16px;">
+      <i class="ph ph-check-circle" style="color: var(--success); font-size: 18px;"></i>
+      <span>No installation needed - the skill is already in Vizion. Just connect your Tableau token and go.</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const slideNames = Array.from(slides).map(s => s.dataset.title);
+let current = 0;
+const revealed = new Set();
+
+const navBar = document.getElementById('navBar');
+const navLabel = document.getElementById('navLabel');
+
+slideNames.forEach((name, i) => {
+  const dot = document.createElement('div');
+  dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+  dot.title = name;
+  dot.addEventListener('click', () => goTo(i));
+  navBar.appendChild(dot);
+});
+
+function goTo(index) {
+  if (index < 0 || index >= slides.length) return;
+  slides[current].classList.remove('active');
+  navBar.children[current].classList.remove('active');
+  current = index;
+  slides[current].classList.add('active');
+  navBar.children[current].classList.add('active');
+  navLabel.textContent = slideNames[current];
+  if (revealed.has(current)) showAnswer(current, false);
+}
+
+function revealCurrent() {
+  const answerId = `answer-${current + 1}`;
+  const hintId = `hint-${current + 1}`;
+  const answer = document.getElementById(answerId);
+  const hint = document.getElementById(hintId);
+  if (answer && !revealed.has(current)) {
+    answer.classList.add('revealed');
+    if (hint) hint.style.display = 'none';
+    revealed.add(current);
+    if (current === 12) animatePodium();
+  }
+}
+
+function showAnswer(index, animate) {
+  const answerId = `answer-${index + 1}`;
+  const hintId = `hint-${index + 1}`;
+  const answer = document.getElementById(answerId);
+  const hint = document.getElementById(hintId);
+  if (answer) {
+    answer.classList.add('revealed');
+    if (hint) hint.style.display = 'none';
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  else if (e.key === 'ArrowLeft') goTo(current - 1);
+  else if (e.key === ' ') { e.preventDefault(); revealCurrent(); }
+  else if (e.key === 'Home') goTo(0);
+  else if (e.key === 'End') goTo(slides.length - 1);
+  else if (e.key >= '0' && e.key <= '9') {
+    const n = parseInt(e.key);
+    if (n === 0) goTo(9);
+    else goTo(n - 1);
+  }
+});
+
+slides[0].classList.add('active');
+navLabel.textContent = slideNames[0];
+
+let podiumAnimated = false;
+function animatePodium() {
+  if (podiumAnimated) return;
+  podiumAnimated = true;
+  const scene = document.getElementById('podiumScene');
+  if (!scene) return;
+  const bars = scene.querySelectorAll('.podium-bar');
+  const infos = scene.querySelectorAll('.podium-info');
+  const runners = scene.querySelectorAll('.runner-card');
+  bars.forEach(bar => {
+    const delay = parseInt(bar.dataset.delay || 0);
+    setTimeout(() => bar.classList.add('animate'), delay);
+  });
+  infos.forEach(info => {
+    const delay = parseInt(info.dataset.delay || 0);
+    setTimeout(() => info.classList.add('animate'), delay);
+  });
+  runners.forEach(card => {
+    const delay = parseInt(card.dataset.delay || 0);
+    setTimeout(() => card.classList.add('animate'), delay);
+  });
+}
+</script>
+</body>
+</html>
